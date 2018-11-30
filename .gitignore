@@ -113,3 +113,7 @@ dmypy.json
 
 # vscode
 .vscode/
+
+# kggle
+input/
+.kaggle/
