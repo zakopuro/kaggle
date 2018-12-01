@@ -117,3 +117,7 @@ dmypy.json
 # kggle
 input/
 .kaggle/
+
+# img
+*.png
+*.csv
