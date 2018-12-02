@@ -1,10 +1,19 @@
 #%%
 %matplotlib inline
-import datetime as datetime
+import datetime as dt
+import matplotlib.pyplot as plt
+plt.rcParams['figure.figsize'] = [16, 10]
+plt.rcParams['font.size'] = 16
 import numpy as np
-import pandas as pd
 import os
+import pandas as pd
+import seaborn as sns
+from keras.applications import xception
 from keras.preprocessing import image
+from mpl_toolkits.axes_grid1 import ImageGrid
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix
+from tqdm import tqdm
 
 #%%
 # 定義
@@ -49,7 +58,23 @@ test.head(5)
 #%%
 def read_img(filepath,size):
 	img = image.load_img(os.path.join(data_dir,filepath),target_size=size)
-	img = image.img_toarray(img)
+	img = image.img_to_array(img)
 	return img
+
+#%%
+# fig = plt.figure(1,figsize=(NUM_CATEGORIES,NUM_CATEGORIES))
+fig = plt.figure(1,figsize=(5,5))
+grid = ImageGrid(fig,111,nrows_ncols=(NUM_CATEGORIES,NUM_CATEGORIES),axes_pad=0.05)
+# i = 0
+# for category_id, category in enumerate(CATEGORIES):
+#     for filepath in train[train['category'] == category]['file'].values[:NUM_CATEGORIES]:
+#         ax = grid[i]
+#         img = read_img(filepath, (224, 224))
+#         ax.imshow(img / 255.)
+#         ax.axis('off')
+#         if i % NUM_CATEGORIES == NUM_CATEGORIES - 1:
+#             ax.text(250, 112, filepath.split('/')[1], verticalalignment='center')
+#         i += 1
+# plt.show();
 
 #%%
