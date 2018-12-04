@@ -113,3 +113,45 @@ print('Xception train bottleneck features shape: {} size: {:,}'.format(train_x_b
 print('Xception valid bottleneck features shape: {} size: {:,}'.format(valid_x_bf.shape, valid_x_bf.size))
 
 #%%
+logreg = LogisticRegression(multi_class='multinomial', solver='lbfgs', random_state=SEED)
+logreg.fit(train_x_bf, ytr)
+valid_probs = logreg.predict_proba(valid_x_bf)
+valid_preds = logreg.predict(valid_x_bf)
+
+#%%
+print('Validation Xception Accuracy {}'.format(accuracy_score(yv, valid_preds)))
+
+#%%
+cnf_matrix = confusion_matrix(yv, valid_preds)
+abbreviation = ['BG', 'Ch', 'Cl', 'CC', 'CW', 'FH', 'LSB', 'M', 'SM', 'SP', 'SFC', 'SB']
+pd.DataFrame({'class': CATEGORIES, 'abbreviation': abbreviation})
+
+#%%
+fig, ax = plt.subplots(1)
+ax = sns.heatmap(cnf_matrix, ax=ax, cmap=plt.cm.Greens, annot=True)
+ax.set_xticklabels(abbreviation)
+ax.set_yticklabels(abbreviation)
+plt.title('Confusion Matrix')
+plt.ylabel('True class')
+plt.xlabel('Predicted class')
+fig.savefig('Confusion matrix.png', dpi=300)
+plt.show();
+
+#%%
+x_test = np.zeros((len(test), INPUT_SIZE, INPUT_SIZE, 3), dtype='float32')
+for i, filepath in tqdm(enumerate(test['filepath'])):
+    img = read_img(filepath, (INPUT_SIZE, INPUT_SIZE))
+    x = xception.preprocess_input(np.expand_dims(img.copy(), axis=0))
+    x_test[i] = x
+print('test Images shape: {} size: {:,}'.format(x_test.shape, x_test.size))
+
+#%%
+test_x_bf = xception_bottleneck.predict(x_test, batch_size=32, verbose=1)
+print('Xception test bottleneck features shape: {} size: {:,}'.format(test_x_bf.shape, test_x_bf.size))
+test_preds = logreg.predict(test_x_bf)
+
+#%%
+test['category_id'] = test_preds
+test['species'] = [CATEGORIES[c] for c in test_preds]
+test[['file', 'species']].to_csv('submission.csv', index=False)
+
