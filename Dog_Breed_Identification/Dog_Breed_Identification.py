@@ -5,8 +5,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pandas as pd
+import re
 from keras.applications import xception
 from keras.preprocessing import image
+from keras.applications.resnet50 import ResNet50
+from keras.applications.resnet50 import preprocess_input, decode_predictions
 from tqdm import tqdm
 from mpl_toolkits.axes_grid1 import ImageGrid
 
@@ -68,18 +71,39 @@ def read_img(filepath, size):
     return img
 
 #%%
-fig = plt.figure(1,figsize =(20,20))
+# ResNet50を利用してエラーチェック
+# 画像で確認
+model = ResNet50(weights='imagenet')
+fig = plt.figure(1,figsize =(30,30))
 grid = ImageGrid(fig,111,nrows_ncols=(10,5),axes_pad=0.05)
 i = 0
-for breed_id in range(10):
-	for filepath in train[train['breed_id'] == breed_id]['file_path'].values[:5]:
+for breed_id,breed in enumerate(BREED[0:10]):
+	for filepath in train[train['breed'] == breed]['file_path'].values[:5]:
 		ax = grid[i]
 		img = read_img(filepath,(224,224))
 		ax.imshow(img / 255.)
+		x = preprocess_input(np.expand_dims(img.copy(), axis=0))
+		preds = model.predict(x)
+		_, imagenet_class_name, prob = decode_predictions(preds, top=1)[0][0]
+		ax.text(10, 180, 'ResNet50: %s (%.2f)' % (imagenet_class_name , prob), color='w', backgroundcolor='k', alpha=0.8)
+		ax.text(10, 210, 'LABEL: %s' % breed, color='k', backgroundcolor='w', alpha=0.8)
 		ax.axis('off')
 		if i % 5 == 5 - 1:
-			ax.text(250,112, train['breed'][breed_id] , verticalalignment ='center')
+			ax.text(250,112, breed , verticalalignment ='center')
 		i += 1
 plt.show();
 
-#%%
+# %%
+model = ResNet50(weights='imagenet')
+ReNet_ans_num = 0
+for breed_id,breed in enumerate(BREED):
+	for filepath in train[train['breed'] == breed]['file_path'].values:
+		img = read_img(filepath,(224,224))
+		ax.imshow(img / 255.)
+		x = preprocess_input(np.expand_dims(img.copy(), axis=0))
+		preds = model.predict(x)
+		_, imagenet_class_name, prob = decode_predictions(preds, top=1)[0][0]
+		if imagenet_class_name.upper() == breed.upper():
+			ReNet_ans_num +=  1
+acc = (ReNet_ans_num * 100) /len(train)
+print('正答数:',ReNet_ans_num,'\n','正答率:',acc)
