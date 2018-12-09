@@ -39,7 +39,7 @@ NUM_CATEGORIES = len(CATEGORIES)
 #%%
 SAMPLE_PER_CATEGORY = 200
 SEED = 1987
-data_dir = '/Users/zakopuro/Documents/kaggle/Plant_Seedlings/input/plant-seedlings-classification/'
+data_dir = '/Users/zakopuro/Code/python_code/kaggle/Plant_Seedlings/input/plant-seedlings-classification/'
 train_dir = os.path.join(data_dir, 'train')
 test_dir = os.path.join(data_dir, 'test')
 sample_submission = pd.read_csv(os.path.join(data_dir, 'sample_submission.csv'))
