@@ -12,6 +12,8 @@ from keras.applications.resnet50 import ResNet50
 from keras.applications.resnet50 import preprocess_input, decode_predictions
 from tqdm import tqdm
 from mpl_toolkits.axes_grid1 import ImageGrid
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import log_loss, accuracy_score
 
 #%%
 data_dir = '/Users/zakopuro/Code/python_code/kaggle/Dog_Breed_Identification/input/'
@@ -37,14 +39,13 @@ SAMPLE_PER_BREED = min(breeds_num)
 #%%
 train = labels.copy()
 train = train.rename(columns={'id':'file_path'})
-train
 # ADD breed_id
 for breed_id,breed in enumerate(BREED):
 	train.loc[train['breed'] == breed, 'breed_id'] = breed_id
 train.sort_values('breed_id',inplace = True)
 train.reset_index(drop = True,inplace = True)
 train['file_path'] = 'train/' + train['file_path'] + '.jpg'
-train.head()
+train.shape
 
 
 #%%
@@ -106,4 +107,42 @@ for breed_id,breed in enumerate(BREED):
 		if imagenet_class_name.upper() == breed.upper():
 			ReNet_ans_num +=  1
 acc = (ReNet_ans_num * 100) /len(train)
-print('正答数:',ReNet_ans_num,'\n','正答率:',acc)
+print('正答数:',ReNet_ans_num,'\n','正答率:',acc) # 78.3%
+
+#%%
+np.random.seed(seed=1)
+rnd = np.random.random(len(train))
+train_idx = rnd < 0.8
+valid_idx = rnd >= 0.8
+ytr = train.loc[train_idx,'breed_id'].values
+yv  = train.loc[valid_idx,'breed_id'].values
+len(ytr),len(yv)
+
+#%%
+INPUT_SIZE = 299		# Xception用サイズ
+POOLING = 'avg'
+x_train = np.zeros((len(labels),INPUT_SIZE,INPUT_SIZE,3),dtype='float32')
+for i,file_path in tqdm(enumerate(train['file_path'])):
+	img = read_img(filepath,(INPUT_SIZE,INPUT_SIZE))
+	x = preprocess_input(np.expand_dims(img.copy(),axis=0))
+	x_train[i] = x
+print('train image shape:{} size:{:,}'.format(x_train.shape,x_train.size))
+
+
+#%%
+Xtr = x_train[train_idx]
+Xv  = x_train[valid_idx]
+print((Xtr.shape, Xv.shape, ytr.shape, yv.shape))
+xception_bottleneck = xception.Xception(weights='imagenet', include_top=False, pooling=POOLING)
+train_x_bf = xception_bottleneck.predict(Xtr, batch_size=32, verbose=1)
+valid_x_bf = xception_bottleneck.predict(Xv, batch_size=32, verbose=1)
+print('Xception train bottleneck features shape: {} size: {:,}'.format(train_x_bf.shape, train_x_bf.size))
+print('Xception valid bottleneck features shape: {} size: {:,}'.format(valid_x_bf.shape, valid_x_bf.size))
+
+#%%
+logreg = LogisticRegression(multi_class='multinomial',solver = 'lbfgs',random_state =1)
+logreg.fit(train_x_bf,ytr)
+valid_probs = logreg.predict_proba(valid_x_bf)
+valid_preds = logreg.predict(valid_x_bf)
+print('Validation Xception LogLoss {}'.format(log_loss(yv, valid_probs)))
+print('Validation Xception Accuracy {}'.format(accuracy_score(yv, valid_preds)))
