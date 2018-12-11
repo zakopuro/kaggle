@@ -49,12 +49,12 @@ train.shape
 
 
 #%%
-# 少ない画像の枚数に合わせる
-train = pd.concat([train[train['breed'] == c][:SAMPLE_PER_BREED] for c in BREED])
-train = train.sample(frac=1)
-train.index = np.arange(len(train))
-train.head()
-train.shape
+# # 少ない画像の枚数に合わせる
+# train = pd.concat([train[train['breed'] == c][:SAMPLE_PER_BREED] for c in BREED])
+# train = train.sample(frac=1)
+# train.index = np.arange(len(train))
+# train.head()
+# train.shape
 
 
 #%%
@@ -73,7 +73,7 @@ def read_img(filepath, size):
 
 #%%
 # ResNet50を利用してエラーチェック
-# 画像で確認
+# 画像で確認(78%くらい)
 model = ResNet50(weights='imagenet')
 fig = plt.figure(1,figsize =(30,30))
 grid = ImageGrid(fig,111,nrows_ncols=(10,5),axes_pad=0.05)
@@ -95,19 +95,19 @@ for breed_id,breed in enumerate(BREED[0:10]):
 plt.show();
 
 # %%
-model = ResNet50(weights='imagenet')
-ReNet_ans_num = 0
-for breed_id,breed in enumerate(BREED):
-	for filepath in train[train['breed'] == breed]['file_path'].values:
-		img = read_img(filepath,(224,224))
-		ax.imshow(img / 255.)
-		x = preprocess_input(np.expand_dims(img.copy(), axis=0))
-		preds = model.predict(x)
-		_, imagenet_class_name, prob = decode_predictions(preds, top=1)[0][0]
-		if imagenet_class_name.upper() == breed.upper():
-			ReNet_ans_num +=  1
-acc = (ReNet_ans_num * 100) /len(train)
-print('正答数:',ReNet_ans_num,'\n','正答率:',acc) # 78.3%
+# model = ResNet50(weights='imagenet')
+# ReNet_ans_num = 0
+# for breed_id,breed in enumerate(BREED):
+# 	for filepath in train[train['breed'] == breed]['file_path'].values:
+# 		img = read_img(filepath,(224,224))
+# 		ax.imshow(img / 255.)
+# 		x = preprocess_input(np.expand_dims(img.copy(), axis=0))
+# 		preds = model.predict(x)
+# 		_, imagenet_class_name, prob = decode_predictions(preds, top=1)[0][0]
+# 		if imagenet_class_name.upper() == breed.upper():
+# 			ReNet_ans_num +=  1
+# acc = (ReNet_ans_num * 100) /len(train)
+# print('正答数:',ReNet_ans_num,'\n','正答率:',acc) # 78.3%
 
 #%%
 np.random.seed(seed=1)
@@ -121,10 +121,10 @@ len(ytr),len(yv)
 #%%
 INPUT_SIZE = 299		# Xception用サイズ
 POOLING = 'avg'
-x_train = np.zeros((len(labels),INPUT_SIZE,INPUT_SIZE,3),dtype='float32')
+x_train = np.zeros((len(train),INPUT_SIZE,INPUT_SIZE,3),dtype='float32')
 for i,file_path in tqdm(enumerate(train['file_path'])):
-	img = read_img(filepath,(INPUT_SIZE,INPUT_SIZE))
-	x = preprocess_input(np.expand_dims(img.copy(),axis=0))
+	img = read_img(file_path,(INPUT_SIZE,INPUT_SIZE))
+	x = xception.preprocess_input(np.expand_dims(img.copy(),axis=0))
 	x_train[i] = x
 print('train image shape:{} size:{:,}'.format(x_train.shape,x_train.size))
 
@@ -146,3 +146,5 @@ valid_probs = logreg.predict_proba(valid_x_bf)
 valid_preds = logreg.predict(valid_x_bf)
 print('Validation Xception LogLoss {}'.format(log_loss(yv, valid_probs)))
 print('Validation Xception Accuracy {}'.format(accuracy_score(yv, valid_preds)))
+
+#%%
