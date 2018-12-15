@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pandas as pd
 import re
+import pickle
 from keras.applications import xception
 from keras.preprocessing import image
 from keras.applications.resnet50 import ResNet50
@@ -55,15 +56,6 @@ train.shape
 # train.index = np.arange(len(train))
 # train.head()
 # train.shape
-
-
-#%%
-test = []
-for file in os.listdir(test_dir):
-    test.append(['test/{}'.format(file), file])
-test = pd.DataFrame(test, columns=['filepath', 'file'])
-test.head()
-test.shape
 
 #%%
 def read_img(filepath, size):
@@ -148,3 +140,43 @@ print('Validation Xception LogLoss {}'.format(log_loss(yv, valid_probs)))
 print('Validation Xception Accuracy {}'.format(accuracy_score(yv, valid_preds)))
 
 #%%
+model_filename = 'output/logreg.sav'
+pickle.dump(logreg,open(model_filename,'wb'))
+
+#%%
+test = []
+for file in os.listdir(test_dir):
+    test.append(['test/{}'.format(file), file])
+test = pd.DataFrame(test, columns=['filepath', 'file'])
+test.sort_values('file',inplace=True)
+test.reset_index(drop = True,inplace = True)
+test.head()
+
+#%%
+# df = pd.DataFrame([0],columns=['id']).set_index('id')
+df = pd.DataFrame([0],columns=['id'])
+for i,filename in tqdm(enumerate(test['file'])):
+	filename = filename[:-4]
+	df.loc[i] = filename
+for _,breed in enumerate(BREED):
+		df[breed] = 0
+df.to_csv('output/submission.csv')
+
+#%%
+testBREED = BREED
+testBREED.reset_index(drop = True,inplace = True)
+x_test = np.zeros((len(test),INPUT_SIZE,INPUT_SIZE,3),dtype='float32')
+loaded_model = pickle.load(open(model_filename, 'rb'))
+for i,filepath in tqdm(enumerate(test['filepath'])):
+	test_img = read_img(filepath,(INPUT_SIZE,INPUT_SIZE))
+	x = xception.preprocess_input(np.expand_dims(test_img.copy(),axis=0))
+	x_test[i] = x
+test_x_bf = xception_bottleneck.predict(x_test, batch_size=32, verbose=1)
+result = loaded_model.predict(test_x_bf)
+result
+
+#%%
+for i,res in enumerate(result):
+	df.iat[i,int(res+1)] = 1
+df_id=df.set_index('id')
+df_id.to_csv('output/submission.csv')
